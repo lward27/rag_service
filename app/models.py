@@ -22,17 +22,32 @@ class BatchIndexRequest(BaseModel):
     documents: list[IndexRequest] = Field(..., min_length=1, description="Documents to index")
 
 
+class SearchAllRequest(BaseModel):
+    query: str = Field(..., min_length=1, description="Search query text")
+    limit: int = Field(default=5, ge=1, le=50, description="Number of results per collection")
+    score_threshold: float = Field(default=0.3, ge=0.0, le=1.0, description="Minimum similarity score")
+    filters: dict = Field(default_factory=dict, description="Metadata filters")
+
+
 class SearchResult(BaseModel):
     content: str
     score: float
     metadata: dict
     document_id: str
+    collection: str = ""
 
 
 class SearchResponse(BaseModel):
     results: list[SearchResult]
     query: str
     collection: str
+    total: int
+
+
+class SearchAllResponse(BaseModel):
+    results: list[SearchResult]
+    query: str
+    collections_searched: list[str]
     total: int
 
 
@@ -60,6 +75,7 @@ class StatusResponse(BaseModel):
     qdrant_connected: bool
     collections: list[CollectionStats]
     embedding_model: str
+    embedding_provider: str = ""
 
 
 class DeleteRequest(BaseModel):

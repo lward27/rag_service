@@ -24,6 +24,8 @@ from app.models import (
     DeleteRequest,
     IndexRequest,
     IndexResponse,
+    SearchAllRequest,
+    SearchAllResponse,
     SearchRequest,
     SearchResponse,
     SearchResult,
@@ -164,6 +166,64 @@ async def search_documents(req: SearchRequest, _=Security(verify_token)):
     )
 
 
+@app.post("/search-all", response_model=SearchAllResponse)
+async def search_all_collections(req: SearchAllRequest, _=Security(verify_token)):
+    """Search across all collections and return merged results sorted by score."""
+    query_embedding = await generate_embedding(req.query)
+
+    query_filter = None
+    if req.filters:
+        conditions = [
+            FieldCondition(key=k, match=MatchValue(value=v))
+            for k, v in req.filters.items()
+        ]
+        query_filter = Filter(must=conditions)
+
+    all_results = []
+    for collection_name in COLLECTIONS:
+        try:
+            results = qdrant.query_points(
+                collection_name=collection_name,
+                query=query_embedding,
+                query_filter=query_filter,
+                limit=req.limit,
+                score_threshold=req.score_threshold,
+                with_payload=True,
+            )
+            for point in results.points:
+                all_results.append(
+                    SearchResult(
+                        content=point.payload.get("content", ""),
+                        score=point.score,
+                        metadata={
+                            k: v
+                            for k, v in point.payload.items()
+                            if k not in ("content",)
+                        },
+                        document_id=point.payload.get("document_id", ""),
+                        collection=collection_name,
+                    )
+                )
+        except Exception:
+            continue
+
+    all_results.sort(key=lambda r: r.score, reverse=True)
+    # Deduplicate by document_id, keeping highest score
+    seen = set()
+    deduped = []
+    for r in all_results:
+        if r.document_id not in seen:
+            seen.add(r.document_id)
+            deduped.append(r)
+
+    return SearchAllResponse(
+        results=deduped[: req.limit],
+        query=req.query,
+        collections_searched=COLLECTIONS,
+        total=len(deduped[: req.limit]),
+    )
+
+
 @app.post("/batch", response_model=BatchIndexResponse)
 async def batch_index(req: BatchIndexRequest, _=Security(verify_token)):
     """Bulk index multiple documents."""
@@ -251,6 +311,7 @@ async def get_status():
             qdrant_connected=True,
             collections=collections_info,
             embedding_model=settings.embedding_model,
+            embedding_provider=settings.embedding_provider,
         )
     except Exception:
         return StatusResponse(
@@ -258,6 +319,7 @@ async def get_status():
             qdrant_connected=False,
             collections=[],
             embedding_model=settings.embedding_model,
+            embedding_provider=settings.embedding_provider,
         )
 
 
