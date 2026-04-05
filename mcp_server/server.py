@@ -8,8 +8,11 @@ from mcp.server.fastmcp import FastMCP
 
 RAG_API_URL = os.environ.get("RAG_API_URL", "https://rag.lucas.engineering")
 RAG_API_TOKEN = os.environ.get("RAG_API_TOKEN", "")
+MCP_TRANSPORT = os.environ.get("MCP_TRANSPORT", "stdio")
+MCP_HOST = os.environ.get("MCP_HOST", "0.0.0.0")
+MCP_PORT = int(os.environ.get("MCP_PORT", "8080"))
 
-mcp = FastMCP("rag-memory")
+mcp = FastMCP("rag-memory", host=MCP_HOST, port=MCP_PORT)
 
 
 def _headers() -> dict:
@@ -187,9 +190,7 @@ async def rag_status() -> str:
 
 
 if __name__ == "__main__":
-    transport = os.environ.get("MCP_TRANSPORT", "stdio")
-    if transport == "http":
-        port = int(os.environ.get("MCP_PORT", "8080"))
-        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
+    if MCP_TRANSPORT == "http":
+        mcp.run(transport="streamable-http")
     else:
         mcp.run()
