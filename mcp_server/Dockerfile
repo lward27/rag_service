@@ -1,0 +1,14 @@
+FROM python:3.11-slim
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY server.py .
+
+EXPOSE 8080
+
+ENV MCP_TRANSPORT=http
+ENV MCP_PORT=8080
+
+ENTRYPOINT ["python", "server.py"]

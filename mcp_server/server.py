@@ -187,4 +187,9 @@ async def rag_status() -> str:
 
 
 if __name__ == "__main__":
-    mcp.run()
+    transport = os.environ.get("MCP_TRANSPORT", "stdio")
+    if transport == "http":
+        port = int(os.environ.get("MCP_PORT", "8080"))
+        mcp.run(transport="streamable-http", host="0.0.0.0", port=port)
+    else:
+        mcp.run()
