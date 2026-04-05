@@ -286,6 +286,31 @@ async def delete_document(req: DeleteRequest, _=Security(verify_token)):
     return {"message": f"Deleted document {req.document_id} from {req.collection}"}
 
 
+@app.get("/indexed/{collection}")
+async def list_indexed(collection: str, _=Security(verify_token)):
+    """List all unique document_ids in a collection. Used for diff-based indexing."""
+    _validate_collection(collection)
+
+    # Scroll through all points and collect unique document_ids
+    doc_ids = set()
+    offset = None
+    while True:
+        results, offset = qdrant.scroll(
+            collection_name=collection,
+            limit=100,
+            offset=offset,
+            with_payload=["document_id"],
+        )
+        for point in results:
+            doc_id = point.payload.get("document_id")
+            if doc_id:
+                doc_ids.add(doc_id)
+        if offset is None:
+            break
+
+    return {"collection": collection, "document_ids": sorted(doc_ids), "total": len(doc_ids)}
+
+
 @app.get("/status", response_model=StatusResponse)
 async def get_status():
     """Health check and collection statistics."""
