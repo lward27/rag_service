@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     chunk_size: int = 512
     chunk_overlap: int = 64
     api_token: str = ""
+    hybrid_search: bool = True
 
     model_config = {"env_prefix": "RAG_"}
 
