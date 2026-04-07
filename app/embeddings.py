@@ -32,7 +32,7 @@ async def _fireworks_embeddings_batch(texts: list[str]) -> list[list[float]]:
 
 
 async def _ollama_embedding(text: str) -> list[float]:
-    async with httpx.AsyncClient(timeout=30.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(
             f"{settings.ollama_url}/api/embed",
             json={"model": settings.ollama_model, "input": text},
@@ -43,7 +43,7 @@ async def _ollama_embedding(text: str) -> list[float]:
 
 async def _ollama_embeddings_batch(texts: list[str]) -> list[list[float]]:
     # Ollama's /api/embed supports batch input
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    async with httpx.AsyncClient(timeout=120.0) as client:
         response = await client.post(
             f"{settings.ollama_url}/api/embed",
             json={"model": settings.ollama_model, "input": texts},
