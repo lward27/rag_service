@@ -1,4 +1,7 @@
 FROM python:3.11-slim
+ARG VCS_REF=unknown
+LABEL org.opencontainers.image.source="https://github.com/lward27/rag_service" \
+      org.opencontainers.image.revision="$VCS_REF"
 WORKDIR /app
 
 COPY requirements.txt .
